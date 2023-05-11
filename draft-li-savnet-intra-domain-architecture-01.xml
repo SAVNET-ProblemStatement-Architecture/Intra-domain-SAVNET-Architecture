@@ -1,0 +1,547 @@
+<?xml version="1.0" encoding="US-ASCII"?>
+<!-- This template is for creating an Internet Draft using xml2rfc,
+     which is available here: http://xml.resource.org. -->
+<!DOCTYPE rfc SYSTEM "rfc2629.dtd">
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<!-- used by XSLT processors -->
+<!-- For a complete list and description of processing instructions (PIs), 
+     please see http://xml.resource.org/authoring/README.html. -->
+<?rfc strict="yes" ?>
+<!-- give errors regarding ID-nits and DTD validation -->
+<!-- control the table of contents (ToC) -->
+<?rfc toc="yes"?>
+<!-- generate a ToC -->
+<?rfc tocdepth="3"?>
+<!-- the number of levels of subsections in ToC. default: 3 -->
+<!-- control references -->
+<?rfc symrefs="yes"?>
+<!-- use symbolic references tags, i.e., [RFC2119] instead of [1] -->
+<?rfc sortrefs="yes" ?>
+<!-- sort the reference entries alphabetically -->
+<!-- control vertical white space 
+     (using these PIs as follows is recommended by the RFC Editor) -->
+<?rfc compact="yes" ?>
+<!-- do not start each main section on a new page -->
+<?rfc subcompact="no" ?>
+<!-- keep one blank line between list items -->
+<!-- end of list of popular I-D processing instructions -->
+<rfc category="std" docName="draft-li-savnet-intra-domain-architecture-01"
+     ipr="trust200902">
+  <front>
+    <title abbrev="Intra-domain SAVNET Architecture">Intra-domain Source
+    Address Validation (SAVNET) Architecture</title>
+
+    <!-- https://authors.ietf.org/en/rfcxml-vocabulary#title-4 -->
+
+    <!--  The abbreviated title is required if the full title is longer than 39 characters -->
+
+    <seriesInfo name="Internet-Draft"
+                value="draft-li-savnet-intra-domain-architecture"/>
+
+    <!-- https://authors.ietf.org/en/rfcxml-vocabulary#seriesinfo -->
+
+    <!-- Set value to the name of the draft  -->
+
+    <author fullname="Dan Li" initials="D." surname="Li">
+      <organization>Tsinghua University</organization>
+
+      <address>
+        <postal>
+          <street/>
+
+          <city>Beijing</city>
+
+          <country>China</country>
+        </postal>
+
+        <email>tolidan@tsinghua.edu.cn</email>
+      </address>
+    </author>
+
+    <author fullname="Jianping Wu" initials="J." surname="Wu">
+      <organization>Tsinghua University</organization>
+
+      <address>
+        <postal>
+          <street/>
+
+          <city>Beijing</city>
+
+          <region/>
+
+          <code/>
+
+          <country>China</country>
+        </postal>
+
+        <email>jianping@cernet.edu.cn</email>
+
+        <uri/>
+      </address>
+    </author>
+
+    <author fullname="Mingqing Huang" initials="M." surname="Huang">
+      <organization>Huawei</organization>
+
+      <address>
+        <postal>
+          <street/>
+
+          <city>Beijing</city>
+
+          <region/>
+
+          <code/>
+
+          <country>China</country>
+        </postal>
+
+        <email>huangmingqing@huawei.com</email>
+
+        <uri/>
+      </address>
+    </author>
+
+    <author fullname="Li Chen" initials="L." surname="Chen">
+      <organization>Zhongguancun Laboratory</organization>
+      <address>
+        <postal>
+          <street/>
+          <city>Beijing</city>
+          <country>China</country>
+        </postal>
+        <email>lichen@zgclab.edu.cn</email>
+      </address>
+    </author>
+
+    <author fullname="Nan Geng" initials="N." surname="Geng">
+      <organization>Huawei</organization>
+
+      <address>
+        <postal>
+          <street/>
+
+          <city>Beijing</city>
+
+          <region/>
+
+          <code/>
+
+          <country>China</country>
+        </postal>
+
+        <email>gengnan@huawei.com</email>
+
+        <uri/>
+      </address>
+    </author>
+
+    <author fullname="Lancheng Qin" initials="L." surname="Qin">
+      <organization>Tsinghua University</organization>
+
+      <address>
+        <postal>
+          <street/>
+
+          <city>Beijing</city>
+
+          <region/>
+
+          <code/>
+
+          <country>China</country>
+        </postal>
+
+        <email>qlc19@mails.tsinghua.edu.cn</email>
+
+        <uri/>
+      </address>
+    </author>
+
+    <author fullname="Fang Gao" initials="F." surname="Gao">
+      <organization>Zhongguancun Laboratory</organization>
+      <address>
+        <postal>
+          <street/>
+          <city>Beijing</city>
+          <country>China</country>
+        </postal>
+        <email>gaofang@zgclab.edu.cn</email>
+      </address>
+    </author>
+    
+    <date day="12" month="March" year="2023"/>
+
+    <!---->
+
+    <keyword/>
+
+    <abstract>
+      <t>Intra-domain source address validation (SAV) plays an important role
+      in defending against source address spoofing attacks in intra-domain
+      networks. This document proposes an intra-domain source address
+      validation (intra-domain SAVNET) architecture. Under the architecture, a router can automatically generate accurate SAV rules based on the SAV-related information from multiple information sources. This document does not specify protocols or protocol extensions, instead focusing on architectural components and their functionalities in an intra-domain SAVNET deployment. </t>
+    </abstract>
+
+    <note title="Requirements Language">
+      <t>The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+      "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+      document are to be interpreted as described in <xref
+      target="RFC8174">RFC 8174</xref>.</t>
+    </note>
+  </front>
+
+  <middle>
+    <section title="Introduction">
+      <t>Source address validation (SAV) is important for mitigating source
+      address spoofing and contributing to the Internet security. Source Address
+      Validation Architecture (SAVA) <xref target="RFC5210"/> divides SAV into
+      three checking levels, i.e., access-network SAV, intra-domain SAV, and
+      inter-domain SAV. When an access network does not deploy SAV (such as SAVI <xref target="RFC7039"/><xref target="RFC7513"/>, Cable Source Verify <xref target="cable-verify"/>, and IP Source Guard <xref target="IPSG"/>), intra-domain SAV helps block spoofed packets as close to the source as possible. </t>
+
+      <t>There are some intra-domain SAV mechanisms available. However, existing intra-domain SAV mechanisms have the problems of inaccurate validation under asymmetric routing and high operational overhead in dynamic networks <xref target="draft-li-savnet-intra-domain-problem-statement"/>. </t>
+
+      <t>To solve the problems above, this document proposes an intra-domain
+      source address validation (intra-domain SAVNET) architecture. Under the architecture, routers can collaborate to discover real incoming interfaces of source prefixes adaptive to routing status, and the packets from all directions can be validated, which yields improvements on source address protection. </t>
+
+      <t>This document focuses on the high-level architecture designs and does not specify protocols or protocol extensions. </t>
+    </section>
+    
+    <section title="Terminology">
+      <t>SAV Rule: The rule that indicates the valid incoming interfaces for a
+      specific source prefix or that indicates the valid source prefixes for a
+      specific interface. </t>
+
+      <t>SAV Table: The table or data structure that implements the SAV rules
+      and is used for source address validation in the data plane. </t>
+
+      <t>Improper Block: The validation results that the packets with
+      legitimate source addresses are blocked improperly due to inaccurate SAV
+      rules. </t>
+
+      <t>Improper Permit: The validation results that the packets with spoofed
+      source addresses are permitted improperly due to inaccurate SAV
+      rules. </t>
+
+      <t>SIB: SAV information base that is for storing SAV-related information collected from different information sources. </t>
+
+      <t>SMP: SIB management protocol that represents any protocols for managing data in SIB. </t>
+
+      <t>RPDP: Real path discovering protocol, generally referring to the extension of existing routing protocols. The RPDP messages can explicitly or implicitly indicate the real incoming interfaces of some specified source prefixes. </t>
+    </section>
+
+    <section title="Design Goals">
+      <t>The intra-domain SAVNET architecture is to enhance the intra-domain SAV and aims to achieve the following goals: </t>
+      <ul spacing="normal">
+        <li>Accurate validation. The real incoming interfaces of source prefixes need to be completely learned, and improper block can be avoided. By trying to exclude non-real incoming interfaces from the valid interface group, improper permit can be reduced. </li>
+
+        <li>Low operational overhead. The routers after initial configurations can adapt to dynamic routing changes automatically, so that the operational overhead can be controlled. </li>
+
+        <li>Working in partial deployment. Routers need to do SAV for both external packets (from subnets or the Internet) and internal packets (forwarded by other routers). On the one hand, edge (or border) routers take SAV for external packets including those from both the subnets and the Internet. On the other hand, edge routers and non-edge routers take SAV for internal packets, which is necessary in partial deployment cases. Under partial deployment, edge routers may not be able to block all the spoofed external packets. SAV for internal packets is to filter the malicious packets mixed in internal packets. </li>
+      </ul>
+
+      <t>To achieve the goal of accurate validation, a router cannot generate SAV rules based on only local RIB/FIB because asymmetric routing exists, and purely relying on manual SAV rule configurations for guaranteeing accurate validation is not practical. The key challenge is how to make a router automatically discover real incoming interfaces of source prefixes of both external and internal packets. </t>
+      
+      <t>Consider that the real incoming interfaces are determined by the forwarding rules of other routers in the network and cannot be entirely obtained locally. To address the key challenge, the intra-domain architecture includes a real path discovery protocol (RPDP) by extending existing routing protocols. Routers will propagate SAV-related data by sending RPDP messages adaptive to forwarding rules. These messages will be received by other routers. By combining the information from manual configurations, RIB/FIB, and protocol messages, accurate SAV rules for both external and internal packets can be generated. </t>
+
+      <t>Other design goals, such as low data plane overhead and easy
+      implementation, are also important, but out of the scope of this
+      document. They should be considered in specific protocols or protocol
+      extensions of SAVNET. </t>
+    </section>
+
+    <section title="Intra-domain SAVNET Architecture">
+      <t>The intra-domain SAVNET architecture is depicted from the perspective of a router. <xref target="arch"/> shows the architecture which consists of a few components. Among these components, the three of SAV Information Base (SIB) manager, RPDP speaker, and SAV table are specialized for SAV. The other components are existing ones but are required for SAV rule generation. </t>
+
+      <figure align="center" anchor="arch">
+        <name>The intra-domain SAVNET Architecture</name>
+        <artwork name="The intra-domain SAVNET Architecture"><![CDATA[
+          +------------------------------------------+
+          |          Other Protocol Speakers         |
+          +------------------------------------------+
+                            /\
+                            | Protocol Messages
+    +-----------------------------------------------------+
+    | Router                 |                            |
+    |                        \/                           |
+    | +-------------------------------------------------+ |
+    | |  Routing           +------------------------+   | |
+    | |  Protocol          |      RPDP Speaker      |   | |
+    | |  Speaker           +------------------------+   | |
+    | +-------------------------------------------------+ |
+    |   |Routing        /\Routing     |SAV                |
+    |   |Information     |Table       |Information        |
+    |   |Dissemination   |            |Dissemination      |
+    |   |Messages        |            |Messages           |
+    |   \/               |            \/                  |
+    | +--------------------+   +----------------------+   |
+    | |                    |   |+--------------------+|   |
+    | |   Routing          |   ||SAV Information Base||   |
+    | |   Information      |-->|+--------------------+|   |
+    | |   Base             |   | SAV Information Base |   |
+    | |                    |   | Manager              |   |
+    | +--------------------+   +----------------------+   |
+    |                                   |SAV Rules        |
+    |                                   \/                |
+    |                             +-----------+           |
+    |                             | SAV Table |           |
+    |                             +-----------+           |
+    +-----------------------------------------------------+
+              /\ Manual Configurations
+              |
+    +----------------------+
+    | CLI, YANG, SMP, etc. |
+    +----------------------+
+        ]]></artwork>
+      </figure>
+
+      <section title="SAV Information Base Manager">
+        <t>SIB manager is the core component for SAV rule generation in the architecture. The component collects SAV-related information from multiple information sources, stores the information in SIB after consolidation, and outputs SAV rules based on the stored information. SAV rules indicate the valid incoming interfaces of source prefixes, which can be represented by &lt;Prefix, Interface&gt; pairs. </t>
+
+        <t>As described previously, collecting SAV-related information purely from local routing information and manual configuration is not enough or practical for learning accurate &lt;Prefix, Interface&gt; pairs. The protocol called RPDP in the document is designed as the third information source which provides accurate SAV information. Therefore, in the architecture, there are total of three information sources, which are listed as follows: </t>
+
+        <ul spacing="normal">
+          <li>Manual Configuration: The routers should support SAV-related configurations. The configurations may be from CLI, YANG, SIB management protocol (SMP), etc. SMP mentioned herein represents any protocols designed for managing data in SIB. </li>
+
+          <li>Routing Information Base: RIB stores routing information learned from routing protocols. It has been used in some existing SAV mechanisms. </li>
+
+          <li>RPDP Messages: Routers will send RPDP messages according to local forwarding rules. The real incoming interfaces of source prefixes can be learned from the received messages. </li>
+        </ul>
+
+        <t>Although there are multiple information sources, one can choose some of them (e.g., RIB and RPDP speaker) for SAV instead of using all of them. When more than one information sources are used, data conflicts may exist. To address the issue, priorities can be set to the sources. For the items with data conflicts, the items from the source of higher priority will be preferred. For the items without data conflicts, a union of the items will be taken. For example, suppose that manual configuration has the highest priority. When the information from RIB indicates that Interface 1 is the valid incoming interface of source prefix P1, the operators can manually configure Interface 1 as the invalid interface of P1. </t>
+
+        <t>By consolidating the information from different sources, SAV manager will get the pairs of &lt;Prefix, Interface&gt; for all prefixes, which are stored in SAV information base. <xref target="sib_tab"/> illustrates SAV information base. In the figure, each source prefix (including the default prefix, i.e., 0.0.0.0) has one or more valid incoming interfaces. The information sources for a pair of &lt;Prefix, Interface&gt; are also recorded. For example, P1 has two incoming interfaces of Interface 1 and Interface 3. Any other interfaces except Interface 1 and 3 will be considered invalid for P1. In the example, Interface 3 for P1 is discovered by only RPDP, which may appear in asymmetric routing cases. </t>
+
+        <t>An SAV table can be generated based on SAV information base. The SAV rules in the table will be installed into the data plane for validating the packets from all directions. The working modes and usage suggestions of SAV table can be found in <xref target="draft-huang-savnet-sav-table"/>. </t>
+
+        <figure align="center" anchor="sib_tab">
+          <name>An illustration of SAV information base</name>
+          <artwork name="An illustration of SAV information base"><![CDATA[
++----------------------------------------------------------+
+| Source Prefix | Incoming Interface | Information Sources |
++---------------+--------------------+---------------------+
+|     P1        |    Interface 1     |       b,c           |
+|     P1        |    Interface 3     |       b             |
+|     P2        |    Interface 2     |       b,c           |
+|     P3        |    Interface 4     |       a             |
+|     ...       |        ...         |       ...           |
+|     default   |    Interface 4     |       a             |
++----------------------------------------------------------+
+* a: Manual Config, b: RIB, c: RPDP
+          ]]></artwork>
+        </figure>
+      </section>
+
+      <section title="RPDP and RPDP Speaker">
+        <t>The RPDP is for automatically discovering real incoming interfaces of source prefixes. Particularly, the RPDP needs to extend existing routing protocols. The RPDP speaker is responsible for dealing with message interactions of the RPDP, and it naturally resides in the routing protocol speaker. The RPDP messages are carried by newly defined TLVs or messages of routing protocols. </t>
+      
+        <t>Through the RPDP speaker, routers can send RPDP messages explicitly or implicitly indicating the real incoming interfaces of some specified source prefixes. A router receiving RPDP messages can resolve the SAV-related information for rule generation. Thus, there exists cooperation between routers. The followings are some kinds of SAV-related information that can be propagated by RPDP: </t>
+        <ul spacing="normal">
+          <li>Source prefixes with a configured tag. A router can construct a message containing some source prefixes (e.g., the prefixes matching a routing policy) as well as a configured tag. The routers whose interfaces are configured the same tag value, will receive the tagged source prefixes and will consider the interfaces with the same tag value as the real incoming interfaces of these source prefixes. Note that, some initial manual configurations are needed such as tag configuration and prefix matching policy configuration. After the initial configurations, the routers can adapt to prefix changes automatically. </li>
+
+          <li>Source prefixes which are propagated through real forwarding paths. A router can construct a message containing some source prefixes and one of the locally reachable destination prefixes. The message will be sent to the nexthop through which the destination prefix is reachable according to the local forwarding rules. The routers receiving the message from an interface will bind the interface with the source prefixes. Then, the message will be sent out by looking up the local forwarding rules of the destination prefix. A router may have lots of locally reachable destination prefixes and needs to send messages for each of the destination prefixes so that all the real incoming interfaces can be discovered. To reduce the communication overhead, a message can contain multiple destination prefixes who have the same nexthop. Note that, any factors that affect forwarding should be considered during the message propagation. </li>
+
+          <li>Forwarding information. A router can advertise the local forwarding information (e.g., route redirection) that may result in asymmetric routing. Then, other routers will conduct path computations and then get the real forwarding paths of source prefixes. </li>
+        </ul>
+
+        <t>In the architecture, the RPDP speaker will get routing table from the RIB and policy routing information from the policy-based routing. These kinds of information will be useful for the RPDP speaker constructing and sending RPDP messages. After receiving RPDP messages, the speaker will disseminate SAV information to the SIB manager component. </t>
+
+        <t>The RPDP speaker should sense the adaptiveness of local source prefixes, forwarding rules, and SAV-related configurations (e.g., tags), etc. The adaptiveness should be notified to related routers through RPDP messages in time. </t>
+      </section>
+    </section>
+
+    <section title="Partial Deployment">
+      <t>Since an intra-domain network mostly has one administration, it is possible to deploy SAVNET on all routers. Under full deployment, only edge routers need to enable SAV for validating external packets. However, partial deployment may still exist due to phased deployment or the limitations coming from multi-vendor supplement. In such cases, the SAV for internal packets are needed, which is supported by the intra-domain SAVNET architecture. </t>
+
+      <t>There are another kind of cases where the SAV for internal packets are necessary. Sometimes, the software of some edge routers has been upgraded for supporting SAVNET, but these routers are not able to do SAV due to the limited data plane capability. In such cases, these edges routers can still run SAVNET protocols to help other routers accurately validating external and internal packets. </t>
+
+      <t>The architecture does not require to be deployed in the whole network like an AS. It also works when an area of the network supports the architecture. A more detailed analysis on partial deployment may be provided in the future version of the document. </t>
+    </section>
+
+    <section title="Security Considerations">
+      <t>The security considerations should be provided in the protocol extension documents. </t>
+    </section>
+
+    <section title="Privacy Considerations">
+      <t>An intra-domain network is mostly operated by a single organization or company, so the architecture does not import privacy issues in most cases. There should be an analysis on privacy in the protocol extension documents. </t>
+    </section>
+
+    <section title="IANA Considerations">
+      <t>This document has no IANA requirements.</t>
+    </section>
+
+    <!---->
+  </middle>
+
+  <back>
+    <references title="Normative References">
+      <?rfc include='reference.RFC.8174'?>
+
+      <reference anchor="draft-li-savnet-intra-domain-problem-statement">
+        <front>
+          <title>Source Address Validation in Intra-domain Networks
+          (Intra-domain SAVNET) Gap Analysis, Problem Statement, and
+          Requirements</title>
+          <author fullname="Dan Li" initials="D." surname="Li">
+            <organization>Tsinghua University</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>tolidan@tsinghua.edu.cn</email>
+            </address>
+          </author>
+
+          <author fullname="Jianping Wu" initials="J." surname="Wu">
+            <organization>Tsinghua University</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>jianping@cernet.edu.cn</email>
+            </address>
+          </author>
+
+          <author fullname="Lancheng Qin" initials="L." surname="Qin">
+            <organization>Tsinghua University</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>qlc19@mails.tsinghua.edu.cn</email>
+            </address>
+          </author>
+
+          <author fullname="Mingqing Huang" initials="M." surname="Huang">
+            <organization>Huawei</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>huangmingqing@huawei.com</email>
+            </address>
+          </author>
+
+          <author fullname="Nan Geng" initials="N." surname="Geng">
+            <organization>Huawei</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>gengnan@huawei.com</email>
+            </address>
+          </author>
+
+          <date day="15" month="December" year="2022"/>
+        </front>
+      </reference>
+    </references>
+
+    <references title="Informative References">
+      <?rfc include='reference.RFC.5210'?>
+
+      <?rfc include='reference.RFC.7039'?>
+
+      <?rfc include='reference.RFC.7513'?>
+
+      <reference anchor="IPSG"
+                 target="https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst2960/software/release/12-2_53_se/configuration/guide/2960scg/swdhcp82.html">
+        <front>
+          <title>Configuring DHCP Features and IP Source Guard</title>
+
+          <author>
+            <organization>Cisco</organization>
+          </author>
+
+          <date year="2016"/>
+        </front>
+      </reference>
+
+      <reference anchor="cable-verify"
+                 target="https://www.cisco.com/c/en/us/support/docs/broadband-cable/cable-security/20691-source-verify.html">
+        <front>
+          <title>Cable Source-Verify and IP Address Security</title>
+
+          <author>
+            <organization>Cisco</organization>
+          </author>
+
+          <date year="2021"/>
+        </front>
+      </reference>
+
+      <reference anchor="draft-huang-savnet-sav-table">
+        <front>
+          <title>Source Address Validation Table Abstraction and
+          Application</title>
+          <author fullname="Mingqing Huang" initials="M." surname="Huang">
+            <organization>Huawei</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>huangmingqing@huawei.com</email>
+            </address>
+          </author>
+          <author fullname="Tianran Zhou" initials="T." surname="Zhou">
+            <organization>Huawei</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>zhoutianran@huawei.com</email>
+            </address>
+          </author>
+          <author fullname="Nan Geng" initials="N." surname="Geng">
+            <organization>Huawei</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>gengnan@huawei.com</email>
+            </address>
+          </author>
+          <author fullname="Dan Li" initials="D." surname="Li">
+            <organization>Tsinghua University</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>tolidan@tsinghua.edu.cn</email>
+            </address>
+          </author>
+          <author fullname="Li Chen" initials="L." surname="Chen">
+            <organization>Zhongguancun Laboratory</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>Lichen@zgclab.edu.cn</email>
+            </address>
+          </author>
+          <author fullname="Jianping Wu" initials="J." surname="Wu">
+            <organization>Tsinghua University</organization>
+            <address>
+              <postal>
+                <city>Beijing</city>
+                <country>China</country>
+              </postal>
+              <email>jianping@cernet.edu.cn</email>
+            </address>
+          </author>
+          <date day="24" month="October" year="2022"/>
+        </front>
+      </reference>
+    </references>
+  </back>
+</rfc>
