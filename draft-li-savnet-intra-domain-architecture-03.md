@@ -112,6 +112,12 @@ SAV Rule: The rule that indicates the validity of a specific source IP address o
 
 SAV Table: The table or data structure that implements the SAV rules and is used for source address validation in the data plane. 
 
+SAV-related Information: Any information that is useful for getting or generating SAV rules. 
+
+SAV-specific Information: The information specialized for SAV that explicitly or implicitly indicates the accurate incoming directions of source addresses. 
+
+SAV Information Base: A table or data structure for storing SAV-related information. 
+
 False Positive: The validation results that the packets with legitimate source IP addresses are considered "invalid" due to inaccurate SAV rules. 
 
 False Negative: The validation results that the packets with spoofed source IP addresses are considered "valid" due to inaccurate SAV rules. 
@@ -121,6 +127,19 @@ False Negative: The validation results that the packets with spoofed source IP a
 
 {::boilerplate bcp14-tagged}
 
+# Design Goals
+The intra-domain SAVNET architecture is to enhance the intra-domain SAV and aims to achieve the following goals:
+
+- Automatic Update. The routers after initial configurations can adapt to dynamic routing changes automatically, so that the operational overhead can be controlled.
+
+- Accurate Validation. The real incoming interfaces of source prefixes need to be completely learned, and improper block can be avoided. By trying to exclude non-real incoming interfaces from the valid interface group, improper permit can be reduced. 
+
+- Working in Incremental/Partial Deployment. The architecture should be no worse than existing mechanisms under incremental/partial deployment. 
+
+Manual configuration should be relatively infrequently used for avoiding high operational overhead. Existing SAV mechanisms mostly rely on routing information for automatically generating SAV rules. However, route decices the outgoing interface of source address while SAV focuses on the incoming interface. Therefore, in some cases, routing information cannot support accurate rule generation. The information specifically useful to SAV but may not useful for routing is lacked in existing SAV mechanisms. 
+
+To improve existing SAV mechanisms and achieve the above goals, allowing routers to exhange SAV-specific information is necessary, which is the main idea of the architecture. 
+
 
 # SAV-related Information
 SAV-related Information represents any information that is useful for getting or generating SAV rules. There are largely two kinds of SAV-related information. 
@@ -129,7 +148,7 @@ SAV-related Information represents any information that is useful for getting or
 Routing information is used for forwarding rule computation, which mostly stored in RIB/FIB. It is not specialized for SAV but can be used to some extent for SAV. However, existing SAV mechanisms that conduct SAV solely based on routing information (e.g., strict uRPF and loose uRPF) may have high false positive or false negative rates in complex routing scenarios.
 
 ## SAV-specific Information
-SAV-specific information is specialized for SAV, which provides more accurate SAV-related information than routing information. For example, it can explicitly determine the source prefixes for a specific subnet or the incoming directions for a specific source prefix. By using SAV-specific information besides routing information, the accuracy of SAV rules can be improved. More specifically, the false positive can be avoided and the false negative can be reduced. Note that, SAV-specific information can also provide SAV rules directly instead of the materials for rule generation. 
+SAV-specific information is specialized for SAV, which explicitly or implicitly indicates the accurate incoming directions of source addresses. For example, it can explicitly determine the source prefixes for a specific subnet or the incoming directions for a specific source prefix. By using SAV-specific information besides routing information, the accuracy of SAV rules can be improved. More specifically, the false positive can be avoided and the false negative can be reduced. Note that, SAV-specific information can also provide SAV rules directly instead of the materials for rule generation. 
 
 
 # Intra-domain SAVNET Architecture {#sec-arch}
@@ -142,7 +161,7 @@ An entity can be a router, a server or some other SAV-equipped devices. A device
     |   Source Entity   |Communication| Validation Entity |
     | +---------------+ |   Channel   | +---------------+ |
     | |  Source       +-----------------+  Validation   | |
-    | |  Speaker      | |             | |  Speaker      | |
+    | |  Speaker      | |             | |  Receiver     | |
     | +-------+-------+ |             | +-------+-------+ |
     |         |         |             |         |         |
     |         |         |             |         |         |
@@ -154,40 +173,39 @@ An entity can be a router, a server or some other SAV-equipped devices. A device
 ~~~
 {: #fig-arch title="The intra-domain SAVNET architecture"}
 
-## Source Speaker and Validation Speaker
-As shown in {{fig-arch}}, Source Speaker resides in Source Entity, and Validation Speaker is in Validation Entity. Either Source Speaker or Validation Speaker is an abstracted speaker which represents a union of multiple protocol speakers as illustrated in {{fig-speaker}}. These protocol speakers can advertise and receive the messages carrying SAV-related information. The followings are some kinds of the protocol speakers: 
+## Source Speaker and Validation Receiver
+As shown in {{fig-arch}}, Source Speaker resides in Source Entity, and Validation Receiver is in Validation Entity. Either Source Speaker or Validation Receiver is an abstracted interface which represents a union of multiple protocol speakers/receivers as illustrated in {{fig-speaker}}. These protocol speakers/receivers can advertise/receive the messages carrying SAV-related information. The followings are some kinds of the protocol speakers/receivers: 
 
-- Configuration Speaker. The configuration Speaker can be the protocol speaker of YANG, FlowSpec, or management protocols for SAV. Any SAV-related information can be obtained from configuration speaker. 
+- Configuration Speaker/Receiver. The configuration Speaker/Receiver can be the protocol interface of YANG, FlowSpec, or management protocols for SAV. Any SAV-related information can be obtained from configuration interface. 
 
-- Routing Protocol Speaker. This kind of speakers are same as the ones in routing protocols (e.g., OSPF). Routing information is mainly obtained from routing protocol speaker. 
+- Routing Protocol Speaker/Receiver. This kind of speakers/receivers are same as the ones in routing protocols (e.g., OSPF). Routing information is mainly obtained from routing protocol speaker. 
 
-- SAV Protocol Speaker. This is a newly defined speaker in the document. Generally, the speaker can reside in completely new protocols or protocol extensions (e.g., routing protocol extensions) for advertising and receiving SAV-related information especially SAV-specific information. 
+- SAV Protocol Speaker/Receiver. This is a newly defined in the document. Generally, the speaker/receiver can reside in completely new protocols or protocol extensions (e.g., routing protocol extensions) for advertising and receiving SAV-specific information. 
 
-These kinds of protocol speakers are NOT REQUIRED to be supported in one SAV mechanism following the architecture. For example, a SAV mechanism can only support YANG speaker and one SAV protocol speaker for getting SAV-related information. 
+SAV-specific information can be obtained through configuration and SAV protocol. For a validation entity, if complete SAV-specific information is available, all SAV rules can be generated based on only SAV-specific information. Routing information is not needed. If a part of SAV-specific information  can be obtained, the information can be a complementary of routing information for rule generation. 
 
 ~~~
     +--------------------+
-    | Source/Validation  |
-    | Speaker            |
+    | Speaker/Receiver   |
     | +----------------+ |
-    | | Configuration  <------------
-    | | Speaker        | |         |
+    | |Configuration   <------------
+    | |Speaker/Receiver| |         |
     | +----------------+ |         |
     | +----------------+ |         ---> Interact
     | |Routing Protocol<--------------> with other
-    | |Speaker         | |         ---> speakers
+    | |Speaker/Receiver| |         ---> speakers
     | +----------------+ |         |
     | +----------------+ |         |
-    | | SAV Protocol   <------------
-    | | Speaker        | |
+    | |SAV Protocol    <------------
+    | |Speaker/Receiver| |
     | +----------------+ |
     +--------------------+
 ~~~
-{: #fig-speaker title="Source/validation speaker"}
+{: #fig-speaker title="Source speaker or validation receiver"}
 
 
 ## Communication Channel
-The communication channel is constructed between the Source Speaker and Validation Speaker. The primary purpose of the channel is for Source Entity to advertise SAV-related information to Validation Entity. In the channel, there can be multiple sessions maintained by the speakers belonging to configuration speakers, routing protocol speakers, and/or SAV protocol speakers. The concrete manner of constructing a session depends on the actual protocol speakers, but the following requirements SHOULD be satisfied: 
+The communication channel is constructed between the Source Speaker and Validation Receiver. The primary purpose of the channel is for Source Entity to advertise SAV-related information to Validation Entity. In the channel, there can be multiple sessions maintained by the entities belonging to configuration, routing protocol, and/or SAV protocol. The concrete manner of constructing a session depends on the actual protocol speakers/receivers, but the following requirements SHOULD be satisfied: 
 
 - The session can be a long-time session or a temporary one, but it SHOULD provide sufficient assurance of transmission reliability and timeliness, so that Validation Entity can update local rules in time. 
 
@@ -195,11 +213,11 @@ The communication channel is constructed between the Source Speaker and Validati
 
 
 ## SAV Agent
-{{fig-sav-agent}} shows SAV Agent. SAV Information Manager in SAV Agent parses the messages received by Validation Speaker. The SAV-related information carried in the messages will be stored in SAV Information Base. The information of Source Speaker, protocol speaker, timestamp, and other useful things will also be recorded together. The recorded information will be disseminated to SAV Rule Generator. SAV rules (e.g., tuples like <prefix, interface set, validity state>) will be generated and stored in SAV Table {{I-D.huang-savnet-sav-table}}. Besides rule generation, SAV Information Base also provides the support of diagnosis. Operators can look up the information in the base for protocol monitoring or troubleshooting. 
+{{fig-sav-agent}} shows SAV Agent. SAV Information Manager in SAV Agent parses the messages received by Validation Receiver. The SAV-related information carried in the messages will be stored in SAV Information Base. The information of Source Speaker, protocol speaker, timestamp, and other useful things will also be recorded together. The recorded information will be disseminated to SAV Rule Generator. SAV rules (e.g., tuples like <prefix, interface set, validity state>) will be generated and stored in SAV Table {{I-D.huang-savnet-sav-table}}. Besides rule generation, SAV Information Base also provides the support of diagnosis. Operators can look up the information in the base for protocol monitoring or troubleshooting. 
 
 ~~~
                 Messages from
-                Validation Speaker
+                Validation Receiver
                     |
     +---------------|---------------+
     | SAV Agent     |               |
@@ -279,7 +297,7 @@ As mentioned previously, a device can be both Source and Validation Entity. In {
     +-------------------+
               |
     +-------------------+
-    | Source&Validation |
+    | Validation&Source |
     | Entity            |
     +-------------------+
               |
@@ -320,7 +338,7 @@ However, in some other cases, devices within the domain do not trust each other.
   - Gaps: Impersonation may still exist due to credential theft, implementation flaws, or entity being compromised. Some other security mechanisms can be taken to make such kind of impersonation difficult. Besides, the entities SHOULD be monitored so that misbehaved entities can be detected. 
 
 - Message blocking. 
-  - Potential solution: Acknowledgement mechanisms MUST be provided in the session between two speakers, so that message losses can be detected. 
+  - Potential solution: Acknowledgement mechanisms MUST be provided in the session between a speaker and a receiver, so that message losses can be detected. 
   - Gaps: Message blocking may be a result of DoS/DDoS attack, man-in-the-middle (MITM) attack, or congestion induced by traffic burst. Acknowledgement mechanisms can detect message losses but cannot avoid message losses. MITM attacks cannot be effectively detected by acknowledgement mechanisms. 
 
 - Message alteration. 
@@ -356,7 +374,7 @@ This document has no IANA requirements.
 
 # Acknowledgements
 
-Many thanks to the valuable comments from: Igor Lubashev, Alvaro Retana, Aijun Wang, Joel Halpern, Jared Mauch, Kotikalapudi Sriram, Rüdiger Volk, Jeffrey Haas, etc.
+Many thanks to the valuable comments from: Igor Lubashev, Alvaro Retana, Aijun Wang, Joel Halpern, Jared Mauch, Kotikalapudi Sriram, Rüdiger Volk, Jeffrey Haas, Xiangqing Chang, Changwang Lin, etc.
 
 --- back
 
