@@ -93,7 +93,7 @@ informative:
 
 This document proposes the intra-domain SAVNET architecture. It can achieve more accurate Source address validation (SAV) than existing SAV mechanisms that only use the router's local routing information to generate SAV rules. In this architecture, routers in the intra-domain network can generate SAV rules based on not only local routing information but also SAV-specific information. 
 
-This document primarily introduces how to communicate SAV-specific information between routers, and how to generate SAV rules based on SAV-specific information and local routing information. The future intra-domain SAV mechanisms can be developed under this architecture. The detailed designs of new intra-domain SAV mechanisms are not the focus of this document.
+This document primarily concentrates on proposing SAV-specific information and introducing how to combine the information with local routing information to generate SAV rules. It also defines the architectural components and their relations. The future intra-domain SAV mechanisms can be developed under this architecture. The detailed designs of new intra-domain SAV mechanisms are not the focus of this document.
 
 --- middle
 
@@ -119,13 +119,11 @@ SAV Table: The table or data structure that implements the SAV rules and is used
 
 Local Routing Information: The information stored in the router's local RIB or FIB that can be used to infer SAV rules in addition to the routing purpose. 
 
-SAV-specific Information: The information specialized for SAV rule generation that is communicated between routers. For example, it can notify routers the source prefixes of the specific subnet or incoming directions of the specific source prefix. 
-
-SAV-related Information: Any information that can be used for generating SAV rules. Generally, SAV-related information includes local routing information and SAV-specific information. 
+SAV-specific Information: The information specialized for SAV rule generation that is communicated between routers. For example, it can notify routers the source prefixes of the specific subnet. 
 
 SAV-specific Information Communication Mechanism: The mechanism for communicating SAV-specific information between routers. The mechanism can be a new protocol or an extension to an existing protocol. 
 
-SAV Information Base: A table or data structure for storing SAV-related information. 
+SAV Information Base: A table or data structure for storing SAV-specific information and local routing information. 
 
 Edge Router: An intra-domain router that is connected to intra-domain subnets.
 
@@ -143,7 +141,7 @@ False Negative: The validation results that the packets with spoofed source IP a
 
 - Source Entity sends SAV-specific information to Validation Entity. It can be an edge router (i.e., the router connected to intra-domain subnets) in the intra-domain network for obtaining the SAV-specific information about subnets. 
 
-- Validation Entity receives the SAV-specific information, processes SAV-related information, generates SAV rules, and conducts SAV. It can be either an edge router or a border router (i.e., the router connected to other ASes) in the intra-domain network for validating any packets entering the network. 
+- Validation Entity receives the SAV-specific information, processes the information, generates SAV rules, and conducts SAV. It can be either an edge router or a border router (i.e., the router connected to other ASes) in the intra-domain network for validating any packets entering the network. 
 
 A router can be an edge router, a border router, both an edge router and a border router, or other router (i.e., neither an edge router nor a border router). An edge router can act as a Source Entity to send its SAV-specific information to other routers, and it can also act as a Validation Entity to receive SAV-specific information from other routers at the same time.
 
@@ -164,21 +162,14 @@ A router can be an edge router, a border router, both an edge router and a borde
 ~~~
 {: #fig-arch title="The intra-domain SAVNET architecture"}
 
-Information Speaker in Source Entity is responsible to send SAV-specific information to Information Receiver in Validation Entity through the communication channel. To this end, a new SAV-specific information communication mechanism should be developed to deliver the SAV-specific information from Source Entity to Validation Entity. SAV Agent in Validation Entity consolidates and processes SAV-related information from Information Receiver and local RIB/FIB, and finally generates SAV rules. 
+Information Speaker in Source Entity is responsible to send SAV-specific information to Information Receiver in Validation Entity through the communication channel. To this end, a new SAV-specific information communication mechanism should be developed to deliver the SAV-specific information from Source Entity to Validation Entity. SAV Agent in Validation Entity consolidates and processes SAV-specific information and local routing information from Information Receiver and local RIB/FIB, and finally generates SAV rules. 
 
-In the following, we introduce the SAV-related information, SAV-specific information communication mechanism, and SAV agent, respectively. Finally, we use two use cases to illustrate that intra-domain SAVNET architecture can improve the accuracy and automation capability of SAV upon existing intra-domain SAV mechanisms. 
+In the following, we introduce the local routing information and SAV-specific information, SAV-specific information communication mechanism, and SAV agent, respectively. Finally, we use two use cases to illustrate that intra-domain SAVNET architecture can improve the accuracy and automation capability of SAV upon existing intra-domain SAV mechanisms. 
 
-## SAV-related Information
-SAV-related information represents any information that is useful for inferring or generating SAV rules. There are two kinds of SAV-related information in the intra-domain network: local routing information and SAV-specific information. 
-
+## Local Routing Information and SAV-specific Information
 Local routing information is used for forwarding rule computation, which is stored in RIB/FIB. Although it is not specialized for SAV, it can also be used to infer SAV rules in existing uRPF-based SAV mechanisms, such as strict uRPF and loose uRPF.
 
-SAV-specific information is specialized for SAV. The Source Entity can obtain local SAV-specific information based on local routing information and local interface configurations. For example, SAV-specific information can help the Validation Entity identify the source prefixes of intra-domain subnets or the incoming directions of source prefixes:
-
-- Source prefixes of intra-domain subnets. The Source Entity that is directly connected to subnets can inform the Validation Entity of its locally known source prefixes of its subnets. The Validation Entity can consolidate such SAV-specific information and local routing information to obtain the complete source prefixes of intra-domain subnets. 
-
-- Incoming directions of source prefixes. 
-The Source Entity can inform the Validation Entity of the incoming direction of the connected subnets' traffic. For the Validation Entity, this direction is the legitimate incoming direction of source prefixes of the subnets connected to the Source Entity. 
+SAV-specific information is specialized for SAV. The Source Entity can obtain local SAV-specific information based on local routing information and local interface configurations. For example, SAV-specific information can help the Validation Entity identify the source prefixes of intra-domain subnets. The Source Entity that is directly connected to subnets can inform the Validation Entity of its locally known source prefixes of its subnets. The Validation Entity can consolidate such SAV-specific information and local routing information to obtain the complete source prefixes of intra-domain subnets. 
 
 By learning the SAV-specific information of the Source Entity, the Validation Entity can generate more accurate SAV rules than solely using its local routing information. In this way, false positive problems can be avoided and false negative problems can be reduced.
 
@@ -194,7 +185,7 @@ The session of the SAV-specific communication mechanism SHOULD meet the followin
 - Authentication can be conducted before session establishment. Authentication is optional but the ability of authentication SHOULD be available. 
 
 ## SAV Agent {#sec-arch-agent}
-{{fig-sav-agent}} shows the workflow of SAV Agent. SAV Information Manager in SAV Agent consolidates SAV-specific information from Information Receiver and local routing information from RIB/FIB, and stores the SAV-related information in SAV Information Base. The stored information will be disseminated to SAV Rule Generator. After that, SAV rules (e.g., tuples like <prefix, interface set, validity state>) will be generated and stored in SAV Table {{I-D.huang-savnet-sav-table}}. SAV Information Manager also provides the support of diagnosis. Operators can look up the information in SAV Information base for monitoring or troubleshooting purpose. 
+{{fig-sav-agent}} shows the workflow of SAV Agent. SAV Information Manager in SAV Agent consolidates SAV-specific information from Information Receiver and local routing information from RIB/FIB, and stores the information in SAV Information Base. The stored information will be disseminated to SAV Rule Generator. After that, SAV rules (e.g., tuples like <prefix, interface set, validity state>) will be generated and stored in SAV Table {{I-D.huang-savnet-sav-table}}. SAV Information Manager also provides the support of diagnosis. Operators can look up the information in SAV Information base for monitoring or troubleshooting purpose. 
 
 ~~~
 SAV-specific information from Information Receiver,
@@ -208,8 +199,8 @@ and local routing information from RIB/FIB
     | | | SAV Information Base  | | |
     | | +-----------------------+ | |
     | +-------------+-------------+ |
-    |               |               |
-    |   SAV-related | information   |
+    |   SAV-specific|local routing  |
+    |   information |information    |
     |               |               |
     | +-------------\/------------+ |
     | | SAV Rule Generator        | |
@@ -293,7 +284,7 @@ As described in {{I-D.ietf-savnet-intra-domain-problem-statement}}, if Router 3 
 If the proposed architecture is implemented in the network, Router 1, Router 2, and Router 5 will inform Router 3 and Router 4 of the source prefixes of Subnet 1 and Subnet 2 by sending SAV-specific information. Then, Router 3 and Router 4 can automatically generate and update accurate SAV rules at interface '#'. 
 
 # Convergence Considerations
-When the SAV-specific information or local routing information changes, the SAV agent MUST be able to detect the change in time and update SAV rules with the new SAV-related information. Since SAV-specific information is originated from the Source Entity, it requires the Source Entity MUST send the updated SAV-specific information to the Validation Entity in a timely manner. For example, in {{fig-use-case2}}, if Subnet 2 has a new source prefix P3, Router 5 MUST inform Router 3 and Router 4 of the new source prefix of Subnet 2 immediately. 
+When the SAV-specific information or local routing information changes, the SAV agent MUST be able to detect the change in time and update SAV rules with the new information. Since SAV-specific information is originated from the Source Entity, it requires the Source Entity MUST send the updated SAV-specific information to the Validation Entity in a timely manner. For example, in {{fig-use-case2}}, if Subnet 2 has a new source prefix P3, Router 5 MUST inform Router 3 and Router 4 of the new source prefix of Subnet 2 immediately. 
 
 Consider that both routing information and SAV-specific information of a subnet are originated and advertised to other routers in the network by the edge router connected to the subnet. Thus, SAV-specific information has similar propagation speed as routing information. 
 
