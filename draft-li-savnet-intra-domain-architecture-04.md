@@ -113,9 +113,10 @@ This document also provides convergence, security, manageability, and privacy co
 
 
 # Terminology
+
 SAV Rule: The rule that indicates the validity of a specific source IP address or source IP prefix.
 
-SAV Table: The table or data structure that implements the SAV rules and is used for source address validation. 
+SAV Table: The table or data structure that implements the SAV rules and is used for source address validation.
 
 Local Routing Information: The information stored in the router's local RIB or FIB that can be used to infer SAV rules in addition to the routing purpose. 
 
@@ -125,31 +126,20 @@ SAV-specific Information Communication Mechanism: The mechanism for communicatin
 
 SAV Information Base: A table or data structure for storing SAV-specific information and local routing information. 
 
+SAVNET Agent: The module that generates SAV rules by processing SAV-specific information and local routing information. 
+
 Edge Router: An intra-domain router that is connected to intra-domain subnets.
 
 Border Router: An intra-domain router that is connected to other ASes. A router can be both an edge router and a border router, if it is connected to both subnets and other ASes.
 
-False Positive: The validation results that the packets with legitimate source IP addresses are considered invalid due to inaccurate SAV rules. False positive may induce improper block problems if routers block the "invalid" packets. 
+Improper Block: The validation results that the packets with legitimate source addresses are blocked improperly due to inaccurate SAV rules.
 
-False Negative: The validation results that the packets with spoofed source IP addresses are considered valid due to inaccurate SAV rules. False negative may induce improper permit problems if routers accept the "valid" packets. 
+Improper Permit: The validation results that the packets with spoofed source addresses are permitted improperly due to inaccurate SAV rules.
 
 
 # Intra-domain SAVNET Architecture Overview {#sec-arch-overview}
 
-This document presents an intra-domain SAVNET architecture that matches the five requirements proposed in {{I-D.ietf-savnet-intra-domain-problem-statement}}:
-
-- For accurate validation, intra-domain SAVNET architecture proposes the SAV-specific information and introduces how to combine this information with local routing information to generate accurate SAV rules.
-
-- For automatic update, intra-domain SAVNET architecture allows routers to automatically communicate SAV-specific information between each other and then generate/update SAV rules automatically.
-
-- For working in incremental/partial deployment, intra-domain SAVNET architecture requires routers to use both local routing information and received SAV-specific information to aviod improper block problems in incremental/partial deployment scenarios. It also provides practical recommendations for incremental/partial deployment in {{sec-incre}}.
-
-- For fast convergence, intra-domain SAVNET architecture provides convergence considerations for designing future intra-domain SAV mechanisms in {{sec-converge}}.
-
-- For necessary security guarantee, intra-domain SAVNET architecture provides security considerations for designing future intra-domain SAV mechanisms in {{sec-security}.
-
-
-{{fig-arch}} shows the intra-domain SAVNET architecture. In the architecture, there is a communication channel connecting two entities, i.e., Source Entity and Validation Entity:
+{{fig-arch}} shows the overview of intra-domain SAVNET architecture. In the architecture, there is a communication channel connecting two entities, i.e., Source Entity and Validation Entity:
 
 - Source Entity sends SAV-specific information to Validation Entity. In the intra-domain network, it can be an edge router (i.e., the router connected to intra-domain subnets) that can obtain the SAV-specific information about intra-domain subnets. 
 
@@ -167,53 +157,55 @@ A router can be an edge router, a border router, both an edge router and a borde
 |                   |               |         |SAV-specific   |Local Routing|
 |                   |               |         |Information    |Information  |
 |                   |               |      +--v---------------v--------+    |
-|                   |               |      |            SAV            |    |
+|                   |               |      |           SAVNET          |    |
 |                   |               |      |           Agent           |    |
 |                   |               |      +---------------------------+    |
 +-------------------+               +---------------------------------------+
 ~~~
 {: #fig-arch title="The intra-domain SAVNET architecture"}
 
-Information Speaker in Source Entity is responsible to send SAV-specific information to Information Receiver in Validation Entity through the communication channel. To this end, a SAV-specific information communication mechanism should be developed to build and maintain the communication channel. SAV Agent in Validation Entity consolidates and processes SAV-specific information received from Information Receiver as well as local routing information from local RIB/FIB, and finally generates SAV rules. 
+Information Speaker in Source Entity is responsible to send SAV-specific information to Information Receiver in Validation Entity through the communication channel. To this end, a SAV-specific information communication mechanism should be developed to build and maintain the communication channel. SAVNET Agent in Validation Entity consolidates and processes SAV-specific information received from Information Receiver as well as local routing information from local RIB/FIB, and finally generates SAV rules. 
 
-In the following, {{sec-information}} introduces the local routing information and SAV-specific information, and the SAV-specific information communication mechanism. {{sec-arch-agent}} introduces the basic workflow of SAV Agent. Then, {{sec-use-case}} uses two representative use cases to illustrate that intra-domain SAVNET architecture can improve the accuracy and automation capability of SAV upon existing intra-domain SAV mechanisms. Finally, this document provides convergence, incremental/partial deployment, security, manageability, and privacy considerations for designing new intra-domain SAV mechanisms.
+In the following, {{sec-information}} introduces the local routing information and SAV-specific information, and the SAV-specific information communication mechanism. {{sec-arch-agent}} introduces the basic workflow of SAVNET Agent. Then, {{sec-use-case}} uses two representative use cases to illustrate that intra-domain SAVNET architecture can improve the accuracy and automation capability of SAV upon existing intra-domain SAV mechanisms. Finally, this document provides convergence, incremental/partial deployment, security, manageability, and privacy considerations for designing new intra-domain SAV mechanisms.
 
 # Local Routing Information and SAV-specific Information {#sec-information}
 
+As described in {{sec-arch-overview}} and shown in {{fig-arch}}, the SAVNET Agent in Validation Entity uses both local routing information and SAV-specific information to generate SAV rules. This section introduces both types of information and how they can be obtained.
+
 ## Local Routing Information
 
-Local routing information is used for forwarding rule computation, which is stored in RIB/FIB. Although it is not specialized for SAV, it can also be used to infer SAV rules in existing uRPF-based SAV mechanisms, such as strict uRPF and loose uRPF.
+Local routing information is used for forwarding rule computation, which is stored in RIB/FIB. Although it is not specialized for SAV, it can also be used to infer SAV rules in existing uRPF-based SAV mechanisms, such as strict uRPF and loose uRPF. This information can be directly obtained from the router's RIB/FIB.
 
 ## SAV-specific Information
 
-SAV-specific information is specialized for SAV. The Source Entity can obtain local SAV-specific information based on local routing information and local interface configurations. 
+SAV-specific information is specialized for SAV. The Source Entity can obtain local SAV-specific information based on local routing information and local interface configurations. The Validation Entity can obtain the SAV-specific information of the Source Entity through the communication channel between Source and Validation Entities.
 
-- For example, SAV-specific information can help the Validation Entity identify the source prefixes of intra-domain subnets. The Source Entity that is directly connected to subnets can inform the Validation Entity of its locally known source prefixes of its subnets. The Validation Entity can consolidate such SAV-specific information and local routing information to obtain the complete source prefixes of intra-domain subnets. 
+For example, SAV-specific information can help the Validation Entity identify the source prefixes of intra-domain subnets. The Source Entity that is directly connected to subnets can inform the Validation Entity of its locally known source prefixes of its subnets. The Validation Entity can consolidate such SAV-specific information and local routing information to obtain the complete source prefixes of intra-domain subnets. 
 
-By learning the SAV-specific information of the Source Entity, the Validation Entity can generate more accurate SAV rules than solely using its local routing information. In this way, false positive problems can be avoided and false negative problems can be reduced.
+By learning the SAV-specific information of the Source Entity, the Validation Entity can generate more accurate SAV rules than solely using its local routing information. In this way, improper block problems can be avoided and improper permit problems can be reduced.
 
 ### SAV-specific Information Communication Mechanism
 
-The SAV-specific communication mechanism is for propagating SAV-specific information from Source Entity to Validation Entity. Since there is no off-the-shelf mechanism to achieve this function, a new SAV-specific communication mechanism is needed. It can be a new protocol or an extension to an existing protocol. This document does not present the details of the protocol design or protocol extensions. In the following, we describe the necessary features of SAV-specific communication mechanism.
+The SAV-specific communication mechanism is for building the communication channel and propagating SAV-specific information from Source Entity to Validation Entity. Since there is no off-the-shelf mechanism to achieve this function, a new SAV-specific communication mechanism is needed. It can be a new protocol or an extension to an existing protocol. This document does not present the details of the protocol design or protocol extensions. In the following, we describe the necessary features of SAV-specific communication mechanism.
 
 The SAV-specific communication mechanism SHOULD define the data structure or format of communicated SAV-specific information, and the operations of communication (such as communication channel establishment and communication channel termination). In addition, the mechanism SHOULD require Source Entity to inform Validation Entity of the updates of SAV-specific information in a timely manner, so that Validation Entity can quickly update SAV rules. 
 
-The session of the SAV-specific communication mechanism SHOULD meet the following requirements: 
+In order to ensure the convergence and security of the communication, the session of the SAV-specific communication mechanism SHOULD meet the following requirements: 
 
 - The session can be a long-time session or a temporary one, but it SHOULD provide sufficient assurance of transmission reliability and timeliness, so that Validation Entity can update its SAV rules in time. 
 
 - Authentication can be conducted before session establishment. Authentication is optional but the ability of authentication SHOULD be available. 
 
-# SAV Agent {#sec-arch-agent}
+# SAVNET Agent {#sec-arch-agent}
 
-{{fig-sav-agent}} shows the workflow of SAV Agent. The SAV Information Manager of SAV Agent consolidates SAV-specific information from Information Receiver and local routing information from RIB/FIB into the SAV Information Base. Then, it sends the consolidated information to the SAV Rule Generator. The SAV Rule Generator will generate SAV rules (e.g., tuples like <prefix, interface set, validity state>) based on the consolidated information. It then stores SAV rules in the SAV Table {{I-D.huang-savnet-sav-table}}. SAV Information Manager also provides the support of diagnosis. Operators can look up the information in SAV Information Base for monitoring or troubleshooting purpose. 
+SAVNET Agent is the module in Validation Entity that generates SAV rules by processing local routing information and received SAV-specific information. {{fig-sav-agent}} shows the workflow of SAVNET Agent. The SAV Information Manager of SAVNET Agent consolidates SAV-specific information from Information Receiver and local routing information from RIB/FIB into the SAV Information Base. Then, it sends the consolidated information to the SAV Rule Generator. The SAV Rule Generator will generate SAV rules (e.g., tuples like <prefix, interface set, validity state>) based on the consolidated information. It then stores SAV rules in the SAV Table {{I-D.huang-savnet-sav-table}}. SAV Information Manager also provides the support of diagnosis. Operators can look up the information in SAV Information Base for monitoring or troubleshooting purpose. 
 
 ~~~
 SAV-specific information from Information Receiver,
 and local routing information from RIB/FIB
                     |
     +---------------|----------------+
-    | SAV Agent     |                |
+    | SAVNET Agent  |                |
     | +-------------\/-------------+ |
     | | SAV Information Manager    | |
     | | +------------------------+ | |
@@ -231,18 +223,21 @@ and local routing information from RIB/FIB
     | +----------------------------+ |
     +--------------------------------+
 ~~~
-{: #fig-sav-agent title="The workflow of SAV agent"}
+{: #fig-sav-agent title="The workflow of SAVNET Agent"}
 
-For the SAV Agent of an edge router, it should first combine the local routing information and the SAV-specific information to obtain the complete source prefixes of each connected subnet. Then, it binds the source prefixes of the subnet to its interface connected to the subnet, and conduct SAV at this interface. Packets arriving at the interface will be considered invalid and should be blocked, if their source addresses do not belong to the subnet.
-In the incremental/partial deployment scenario where not all edge routers connected to the same subnets deploy SAV-specific information communication mechanism, an edge router acting as a Validation Entity may not be able to identify complete source prefixes of the subnet. To avoid false positive problems in this case, the Validation Entity is recommended to use less strict SAV rules. For example, it can choose to only block packets with non-global or non-routable source addresses by using its local routing information. 
+As mentioned in {{sec-arch-overview}}, the Validation Entity can be either an edge router or a border router. According to the definition of intra-domain SAV proposed in {{I-D.ietf-savnet-intra-domain-problem-statement}}, the edge router is responsible for validating packets received from the connected subnet and blocking those with source addresses of other subnets. While the border router is responsible for validating packets received from other ASes and blocking those with source addresses in internal source prefixes. Therefore, the working mechanism of SAVNET Agents of edge router and border router should be different, especially in the incremental/partial deployment scenario.
 
-For the SAV Agent of a border router, it should combine the local routing information and the SAV-specific information to collect all internal source prefixes, i.e., the source prefixes of all internal subnets. Then, it binds the internal source prefixes to the interfaces connected to other ASes and conducts SAV at these interfaces. Packets arriving at these interfaces will be considered invalid and should be blocked, if their source addresses belong to internal source prefixes. 
+For the SAVNET Agent of an edge router, it should first combine the local routing information and the SAV-specific information to obtain the complete source prefixes of each connected subnet. Then, it binds the source prefixes of the subnet to its interface connected to the subnet, and conduct SAV at this interface. Packets arriving at the interface will be considered invalid and should be blocked, if their source addresses do not belong to the subnet.
+In the incremental/partial deployment scenario where not all edge routers connected to the same subnets deploy SAV-specific information communication mechanism, an edge router acting as a Validation Entity may not be able to identify complete source prefixes of the subnet. To avoid improper problems in this case, the Validation Entity is recommended to use less strict SAV rules. For example, it can choose to only block packets with non-global or non-routable source addresses by using its local routing information. 
+
+For the SAVNET Agent of a border router, it should combine the local routing information and the SAV-specific information to collect all internal source prefixes, i.e., the source prefixes of all internal subnets. Then, it binds the internal source prefixes to the interfaces connected to other ASes and conducts SAV at these interfaces. Packets arriving at these interfaces will be considered invalid and should be blocked, if their source addresses belong to internal source prefixes. 
 In the incremental/partial deployment scenario where not all edge routers in the intra-domain network deploy SAV-specific information communication mechanism, a border router acting as a Validation Entity may not be able to get complete internal source prefixes. In this scenario, the border router can still block inbound packets with source addresses belonging to the learned internal source prefixes. 
-In addition, if the border router also implements inter-domain SAVNET architecture, its intra-domain SAV Agent can send the intra-domain SAV-specific information to its inter-domain SAV Agent, helping the inter-domain SAV Agent generate inter-domain SAV rules or inter-domain SAV-specific information.
+In addition, if the border router also implements inter-domain SAVNET architecture, its intra-domain SAVNET Agent can send the intra-domain SAV-specific information to its inter-domain SAVNET Agent, helping the inter-domain SAVNET Agent generate inter-domain SAV rules or inter-domain SAV-specific information.
 
 
 # Use Cases of Intra-domain SAVNET Architecture {#sec-use-case}
-Two use cases are given below to illustrate that intra-domain SAVNET architecture can work better than existing intra-domain SAV mechanisms. 
+
+This section uses two use cases to illustrate that intra-domain SAVNET architecture can achieve more accurate and efficient SAV than existing intra-domain SAV mechanisms, both in the inbound and outbound directions.
 
 ## Use Case 1: Validating Outbound Packets from a Multi-homed Subnet at Edge Routers
 
@@ -271,9 +266,9 @@ Two use cases are given below to illustrate that intra-domain SAVNET architectur
 ~~~
 {: #fig-use-case1 title="A use case of outbound SAV"}
 
-In this case, as described in {{I-D.ietf-savnet-intra-domain-problem-statement}}, strict uRPF at Router 1 will improperly block legitimate packets with source addresses in prefix 10.0.0.0/16 from Subnet 1 at interface '#', because it only accepts packets with source addresses in prefix 10.1.0.0/16 from Router 1's interface '#'.
+In this case, as described in {{I-D.ietf-savnet-intra-domain-problem-statement}}, strict uRPF at Router 1 will improperly block legitimate packets with source addresses in prefix 10.0.0.0/16 from Subnet 1 at interface '#', because it only accepts packets with source addresses in prefix 10.1.0.0/16 from Router 1's interface '#' according to its local routing information.
 
-If intra-domain SAVNET architecture is implemented in the network, Router 2 can inform Router 1 that prefix 10.0.0.0/16 also belongs to Subnet 1 by sending SAV-specific information to Router 1. Then, Router 1 learns that Subnet 1 owns both prefix 10.1.0.0/16 and prefix 10.0.0.0/16. Therefore, Router 1 will accept packets with source addresses in prefix 10.0.0.0/15 at interface '#', so improper block can be avoided. 
+If intra-domain SAVNET architecture is implemented in the network, Router 2 can inform Router 1 that prefix 10.0.0.0/16 also belongs to Subnet 1 by sending SAV-specific information to Router 1. Then, by combining both local routing information and received SAV-specific information, Router 1 learns that Subnet 1 owns both prefix 10.1.0.0/16 and prefix 10.0.0.0/16. Therefore, Router 1 will accept packets with source addresses in prefix 10.1.0.0/16 and prefix 10.0.0.0/16 at interface '#', so improper block can be avoided. 
 
 ## Use Case 2: Validating Inbound Packets from Other ASes at Border Routers
 
@@ -301,33 +296,48 @@ If intra-domain SAVNET architecture is implemented in the network, Router 2 can 
 ~~~
 {: #fig-use-case2 title="A use case of inbound SAV"}
 
-As described in {{I-D.ietf-savnet-intra-domain-problem-statement}}, if Router 3 and Router 4 deploy ACL-based ingress filtering, the operational overhead of manually maintaining and updating ACL rules will be extremely high when there are multiple inbound validation points. 
+As described in {{I-D.ietf-savnet-intra-domain-problem-statement}}, if Router 3 and Router 4 deploy ACL-based ingress filtering, the operator needs to manually generate and update ACL rules at Router 3 and Router 4 when internal source prefixes change. The operational overhead of manually maintaining and updating ACL rules will be extremely high, especially when there are multiple inbound validation points. 
 
-If intra-domain SAVNET architecture is implemented in the network, Router 1, Router 2, and Router 5 will inform Router 3 and Router 4 of the source prefixes of Subnet 1 and Subnet 2 by sending SAV-specific information. Then, Router 3 and Router 4 can automatically generate and update SAV rules at interface '#', and block inbound packets with internal source addresses.
+If intra-domain SAVNET architecture is implemented in the network, Router 1, Router 2, and Router 5 will inform Router 3 and Router 4 of the source prefixes of Subnet 1 and Subnet 2 by sending SAV-specific information. After receiving the SAV-specific information, Router 3 and Router 4 can identify internal source prefixes and detect their changes. In this way, Router 3 and Router 4 can automatically generate and update SAV rules at interface '#' to block inbound packets with internal source addresses. 
 
-# Convergence Considerations {#sec-converge}
-When the SAV-specific information or local routing information changes, the SAV Agent MUST be able to detect the changes in time and update SAV rules with the latest information. Since SAV-specific information is originated from the Source Entity, it requires the Source Entity MUST send the updated SAV-specific information to the Validation Entity in a timely manner. For example, in {{fig-use-case2}}, if Subnet 2 has a new source prefix P3, Router 5 MUST inform Router 3 and Router 4 of the new source prefix of Subnet 2 immediately. 
+# How Does Intra-domain SAVNET Architecture Satisfy the Design Requirements？
 
-Consider that both routing information and SAV-specific information of a subnet are originated and advertised to other routers in the network by the edge router connected to the subnet. Thus, SAV-specific information has similar propagation speed as routing information. 
+This document presents an intra-domain SAVNET architecture that matches the five requirements proposed in {{I-D.ietf-savnet-intra-domain-problem-statement}}:
 
-Even though, there will still be delays of message delivery (sometimes re-transmission delay due to packet loss) and information processing. Therefore, during the convergence process, the SAV rules for checking packets are possibly inaccurate, which may result in false positive or false negative. Existing uRPF-based SAV mechanisms that solely use local routing information are also faced with similar convergence problems. Inaccurate validation may appear during the convergence of routing, which is inevitable in practice.
+- For accurate validation, intra-domain SAVNET architecture proposes the SAV-specific information. Routers in the intra-domain network can combine SAV-specific information with local routing information to generate accurate SAV rules. For example, by collecting SAV-specific information and local routing information, edge routers can accurately identify the complete source prefixes of the connected subnet, and border routers can accurately identify the complete internal source prefixes.
 
-To mitigate the impact of convergence problems and avoid improper block, future intra-domain SAV mechanisms MUST carefully consider the factors that may affect the convergence performance.
+- For automatic update, intra-domain SAVNET architecture allows routers to communicate SAV-specific information between each other automatically. After receiving SAV-specific information from Source Entities, the Validation Entity can generate and update its SAV rules accordingly.
 
+- For working in incremental/partial deployment, intra-domain SAVNET architecture requires routers to use both local routing information and learnt SAV-specific information to generate SAV rules, in order to avoid improper block when some SAV-specific information is not available. In addition, Validation Entities are proposed to support flexible validation modes and perform SAV filtering incrementally to smooth the transition from partial to full deployment. More practical recommendations for incremental/partial deployment can be found in {{sec-incre}}.
+
+- For fast convergence, intra-domain SAVNET architecture requires routers to update SAV-specific information and SAV rules in a timely manner. For the Source Entity, it MUST send its updated SAV-specific information to the Validation Entity timely. For the Validation Entity, it MUST detect the changes of local routing information and received SAV-specific information in time and update SAV rules with the latest information. More convergence considerations for designing future intra-domain SAV mechanisms can be found in {{sec-converge}}.
+
+- For necessary security guarantee, intra-domain SAVNET architecture suggests that the new intra-domain SAV mechanisms SHOULD consider and avoid some potential security threats, such as entity impersonation. More security considerations for designing future intra-domain SAV mechanisms can be found in {{sec-security}.
 
 # Incremental/Partial Deployment Considerations {#sec-incre}
+
 Although an intra-domain network mostly has one administration, incremental/partial deployment may still exist due to phased deployment or the limitations coming from multi-vendor supplement. In the phased deployment, it is RECOMMENDED that the edge routers connected to same subnet can be upgraded together so that the complete source prefixes of the subnet can be obtained by other routers. 
-For example, in {{fig-use-case1}}, Router1 and Router2 can be upgraded together so that the two routers can obtain complete SAV-specific information about Subnet1 and generate accurate SAV rules. 
+For example, in {{fig-use-case1}}, Router 1 and Router 2 are recommended to be upgraded together so that the two routers can obtain complete source prefixes of Subnet 1 and generate accurate SAV rules. 
 
 As described in {{sec-arch-agent}}, the architecture can adapt to the incremental/partial deployment scenario. Under incremental/partial deployment, if complete SAV-specific information is unavailable, SAV rules can be generated by combining available SAV-specific information and local routing information. 
 
-The implementation of Validation Entity is RECOMMENDED to support flexible validation modes such as interface-based prefix allowlist, interface-based prefix blocklist, and prefix-based interface allowlist {{I-D.huang-savnet-sav-table}}. The first two modes are interface-scale, and the last one is device-scale. Under incremental/partial deployment, the Validation Entity SHOULD take on the proper validation mode according to the deploying of Source Entities. For example, if Validation Entity is able to get the complete set of legitimate source prefixes arriving at a given interface, interface-based prefix allowlist can be enabled at the given interface, and false positive will not exist. 
+The implementation of Validation Entity is RECOMMENDED to support flexible validation modes such as interface-based prefix allowlist, interface-based prefix blocklist, and prefix-based interface allowlist {{I-D.huang-savnet-sav-table}}. The first two modes are interface-scale, and the last one is device-scale. Under incremental/partial deployment, the Validation Entity SHOULD take on the proper validation mode according to the deploying of Source Entities. For example, if Validation Entity is able to get the complete set of legitimate source prefixes arriving at a given interface, interface-based prefix allowlist can be enabled at the given interface, and improper block will not exist. 
 
-In addition, the SAV filtering at the router can be also performed incrementally. The router can first take conservative actions on the validated data packets. That is to say, the router will not directly discard packet with an invalid result in the beginning of deployment. It can conduct sampling action for measurement analysis at first, and then conducts rate-limiting action or redirecting action for packets with invalid results. These conservative actions will not result in serious consequences under false positive validation results, while still providing protection for the network. Finally, filtering action is enabled only after confirming that there are no false positives.
+In addition, the SAV filtering at the router can be also performed incrementally. The router can first take conservative actions on the validated data packets. That is to say, the router will not directly discard packet with an invalid result in the beginning of deployment. It can conduct sampling action for measurement analysis at first, and then conducts rate-limiting action or redirecting action for packets with invalid results. These conservative actions will not result in serious consequences if some legitimate packets are mistakenly considered invalid, while still providing protection for the network. Finally, filtering action is enabled only after confirming that there are no improper block problems.
 
+# Convergence Considerations {#sec-converge}
+
+When the SAV-specific information or local routing information changes, the SAVNET Agent MUST be able to detect the changes in time and update SAV rules with the latest information. Since SAV-specific information is originated from the Source Entity, it requires the Source Entity MUST send the updated SAV-specific information to the Validation Entity in a timely manner. For example, in {{fig-use-case2}}, if Subnet 2 has a new source prefix P3, Router 5 MUST inform Router 3 and Router 4 of the new source prefix of Subnet 2 immediately. 
+
+Consider that both routing information and SAV-specific information of a subnet are originated and advertised to other routers in the network by the edge router connected to the subnet. Thus, SAV-specific information has similar propagation speed as routing information. 
+
+Even though, there will still be delays of message delivery (sometimes re-transmission delay due to packet loss) and information processing. Therefore, during the convergence process, the SAV rules for checking packets are possibly inaccurate, which may result in improper block or improper permit. Existing uRPF-based SAV mechanisms that solely use local routing information are also faced with similar convergence problems. Inaccurate validation may appear during the convergence of routing, which is inevitable in practice.
+
+To mitigate the impact of convergence problems and avoid improper block, future intra-domain SAV mechanisms MUST carefully consider the factors that may affect the convergence performance.
 
 # Security Considerations {#sec-security}
-Typically, routers in an intra-domain network can trust each other beacuse they would not compromise intra-domain control-plane architectures and protocols.
+
+Typically, routers in an intra-domain network can trust each other because they would not compromise intra-domain control-plane architectures and protocols.
 
 However, in some unlikely cases, some routers may do harm to other routers within the same domain. Operators SHOULD be aware of potential threats involved in deploying the architecture. Some potential threats and solutions are as follows: 
 
