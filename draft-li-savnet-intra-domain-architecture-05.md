@@ -153,19 +153,19 @@ When a SAVNET router acts as source entity, the information sender of its SAVNET
 When a SAVNET router acts as validation entity, the information receiver of its SAVNET Agent receives SAV-specific information from other routers that act as source entity. Then, its SAVNET Agent processes the received SAV-specific information as well as its local routing information to generate SAV rules. For example, an edge router or a border router acting as validation entity can generate SAV rules and use SAV rules to perform SAV on inbound or outbound packets.
 
 ~~~
-+---------------------+               +-------------------------------------+
-|    Source Entity    |               |          Validation Entity          |
-|     (Router A)      |               |             (Router B)              |
-|                     |               |                                     |
-| +-----------------+ |               | +-----------------+     +---------+ |
-| |   SAVNET Agent  | | Communication | |   SAVNET Agent  <-----+ RIB/FIB | |
-| | +-------------+ | | Channel       | | +-------------+ |     +---------+ |
-| | | Information +-----------------------> Information | | Local Routing   |
-| | | Sender      | | |(SAV-specific  | | | Receiver    | | Information     |
-| | +-------------+ | | Information ) | | +-------------+ |                 |
-| +-----------------+ |               | +-----------------+                 |
-|                     |               |                                     |
-+---------------------+               +-------------------------------------+
++---------------------+             +----------------------------------+
+|    Source Entity    |             |         Validation Entity        |
+|     (Router A)      |             |            (Router B)            |
+|                     |             |                                  |
+| +-----------------+ |             | +-----------------+  +---------+ |
+| |   SAVNET Agent  | |Communication| |   SAVNET Agent  <--+ RIB/FIB | |
+| | +-------------+ | |Channel      | | +-------------+ |  +---------+ |
+| | | Information +---------------------> Information | | Local Routing|
+| | | Sender      | | |(SAV-specific| | | Receiver    | | Information  |
+| | +-------------+ | | Information)| | +-------------+ |              |
+| +-----------------+ |             | +-----------------+              |
+|                     |             |                                  |
++---------------------+             +----------------------------------+
 ~~~
 {: #fig-arch title="Intra-domain SAVNET architecture"}
 
