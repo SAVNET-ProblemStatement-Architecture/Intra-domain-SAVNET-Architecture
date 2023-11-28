@@ -24,10 +24,10 @@ In WG meetings and mailing list, there were lots of active discussions on our pr
 
 - - -
 ## IETF 118
-- Time: TBD, 2023 (Prague, Česká republika)
-- Minutes: TBD
-- Draft: TBD
-- Materials: TBD
+- Time: Wednesday, Nov 8, 2023 (Prague, Czechia)
+- Minutes: https://datatracker.ietf.org/doc/minutes-118-savnet/
+- Draft: [draft-li-savnet-intra-domain-architecture-05](https://datatracker.ietf.org/doc/draft-li-savnet-intra-domain-architecture/) 
+- Materials: https://datatracker.ietf.org/meeting/118/session/savnet
 
 - - -
 ## Mailing List
