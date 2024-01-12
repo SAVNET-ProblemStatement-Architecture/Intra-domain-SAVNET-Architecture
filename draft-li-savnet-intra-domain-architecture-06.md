@@ -5,7 +5,7 @@ docname: draft-li-savnet-intra-domain-architecture-06
 obsoletes:
 updates:
 date:
-category: info
+category: std
 submissionType: IETF
 
 ipr: trust200902
@@ -133,9 +133,9 @@ SAVNET Router: An intra-domain router which runs intra-domain SAVNET.
 
 SAVNET Agent: The agent in a SAVNET router that is responsible for communicating SAV-specific information, processing SAV-related information, and generating SAV rules.
 
-Host-facing Router: An intra-domain router of an AS which is connected to a host network.
+Host-facing Router: An intra-domain router of an AS which is connected to a host network (i.e., a layer-2 network).
 
-Customer-facing Router: An intra-domain router of an AS which is connected to a customer network (a network that runs IGP and does not transit inter-domain traffic).
+Customer-facing Router: An intra-domain router of an AS which is connected to a customer network running the routing protocol (i.e., a layer-3 network).
 
 AS Border Router: An intra-domain router of an AS which is connected to other ASes.
 
@@ -150,49 +150,49 @@ Improper Permit: The validation results that the packets with spoofed source add
 
 {{fig-arch}} illustrates intra-domain SAVNET architecture in an intra-domain network. In the intra-domain network, host-facing routers, customer-facing routers, and AS border routers are required to perform SAV filtering on specific interfaces (i.e., interfaces '#' in {{fig-arch}}):
 
-- Host-facing routers (e.g., Routers A, B, or C) generate SAV rules on interfaces facing a host network and block data packets with source addresses not belonging to the host network receiving from that interface.
+- Host-facing routers (e.g., Routers A and B) generate SAV rules on interfaces facing a layer-2 host network and block data packets with source addresses not belonging to the host network receiving from that interface.
 
-- Customer-facing routers (e.g., Routers A, B, or C) generate SAV rules on interfaces facing a customer network and block data packets with source addresses not belonging to the customer network receiving from that interface. Customer network is a network that also runs routing protocols but does not transit inter-domain traffic.
+- Customer-facing routers (e.g., Routers C) generate SAV rules on interfaces facing a layer-3 customer network and block data packets with source addresses not belonging to the customer network receiving from that interface.
 
-- AS border routers (e.g., Routers F or G) generate SAV rules on interfaces facing another AS and block data packets with source addresses belonging to the local AS receiving from that interface.
+- AS border routers (e.g., Routers D or E) generate SAV rules on interfaces facing another AS and block data packets with source addresses belonging to the local AS receiving from that interface.
 
 ~~~
-             +----------------------------------+
-             |            Other ASes            |
-             +----------------------------------+
-                |                            |
-+---------------|----------------------------|--------------+
-| Intra-domain  |         SAV info           |              |
-|               |         flow from          |              |
-|               |         Router A           |              |
-|         +----+#+---+ --------------> +----+#+---+         |
-|         | Router F |                 | Router G |         |
-|         +-----^----+ <-------------- +-----^----+         |
-|     SAV info  |         SAV info           | SAV info     |
-|     flow from |         flow from          | flow from    |
-|     Router A  |         Router C           | Router C     |
-|         +-----+----+                 +-----+----+         |
-|         | Router D |                 | Router E |         |
-|         +-/\+------+                 +-----^----+         |
-|SAV info   /       \  SAV info              | SAV info     |
-|flow from /         \ flow from             | flow from    |
-|Router A /           \Router A              | Router C     |
-|  +----------+  +----\/----+          +----------+         |
-|  | Router A |  | Router B |          | Router C |         |
-|  +---+#+----+  +------+#+-+          +----+#+---+         |
-|        \              /                    |              |
-+---------\------------/---------------------|--------------+
-           \          /                      |
-         +--------------+            +-------+------+
-         | Host/Customer|            | Host/Customer|
-         |   Network    |            |   Network    |
-         +--------------+            +--------------+
+                +----------------------------------+
+                |            Other ASes            |
+                +----------------------------------+
+                   |                            |
++------------------|----------------------------|--------------+
+|    Intra-domain  |        SAV-specific        |              |
+|                  |        message from        |              |
+|                  |        Router A            |              |
+|            +----+#+---+ --------------> +----+#+---+         |
+|            | Router D |                 | Router E |         |
+|            +-----/\---+ <-------------- +-----/\---+         |
+|     SAV-specific |        SAV-specific        | SAV-specific |
+|     message from |        message from        | message from |
+|     Router A     |        Router C            | Router C     |
+|            +----------------------------------------+        |
+|            |      Other intra-domain routers        |        |
+|            +-/\-------------------------------/\----+        |
+| SAV-specific /       \  SAV-specific          | SAV-specific |
+| message from/         \ message from          | message from |
+| Router A   /           \Router A              | Router C     |
+|     +----------+  +----\/----+          +----------+         |
+|     | Router A |  | Router B |          | Router C |         |
+|     +---+#+----+  +------+#+-+          +----+#+---+         |
+|           \              /                    |              |
++------------\------------/---------------------|--------------+
+              \          /                      |
+            +--------------+            +--------------+
+            |     Host     |            |   Customer   |
+            |   Network    |            |   Network    |
+            +--------------+            +--------------+
 ~~~
 {: #fig-arch title="Overview of intra-domain SAVNET architecture"}
 
-To generate more accurate SAV rules, intra-domain SAVNET requires routers to automatically exchange SAV-specific information. For example, a host-facing (or customer-facing) router can contain its locally-known prefixes of the host network (or customer network) in its SAV-specific information. The router can choose to only provide this information to specific routers or provide this information to all routers in the intra-domain network. {{fig-arch}} shows the SAV-specific information flow originated from Router A and Router C, and omits the SAV-specific information flow originated from other routers for brevity.
+To generate more accurate SAV rules, intra-domain SAVNET requires routers to automatically exchange SAV-specific information. For example, a host-facing (or customer-facing) router can contain its locally-known prefixes of the host network (or customer network) in its SAV-specific information. The router can choose to only provide this information to specific routers or provide this information to all routers in the intra-domain network. The arrows in {{fig-arch}} indicate the direction of SAV-specific information flows originated from Router A and Router C. SAV-specific information flows originated from other routers are omitted for brevity.
 
-After receiving SAV-specific information provided by other routers, routers can generate more accurate SAV rules by using local SAV-specific information, SAV-specific information provided by other routers, and/or local routing information. For example, in {{fig-arch}}, Router B can identify all prefixes in the host network (or customer network) connected to itself by using local SAV-specific information and SAV specific information provided by Router A, even if there is an asymmetric routing between Router B and the host network (or customer network) to which it is connected. Routers F and G can identify all prefixes in the local AS by using SAV-specific inforamtion provided by Routers A, B, and C.
+After receiving SAV-specific information provided by other routers, routers can generate more accurate SAV rules by using SAV-specific information provided by other routers, its own SAV-specific information, and/or routing information in the local FIB/RIB. For example, in {{fig-arch}}, Router B can identify all prefixes in the host network by using its own SAV-specific information and SAV specific information provided by Router A, even if there is an asymmetric routing between Router B and the host network. Routers F and G can identify all prefixes in the local AS by using SAV-specific inforamtion provided by Routers A, B, and C.
 
 ## Roles of SAVNET Routers
 
@@ -204,7 +204,7 @@ When a SAVNET router acts as source entity, the information provider of its SAVN
 
 ### Validation Entity
 
-When a SAVNET router acts as validation entity, the information receiver of its SAVNET Agent receives SAV-specific information from other SAVNET routers that act as source entity. Then, its SAVNET Agent processes the received SAV-specific information, its local SAV-specific information, and/or its local routing information to generate SAV rules on corresponding interfaces. As mentioned above, host-facing routers perform SAV filtering on interfaces facing the host network, customer-facing routers perform SAV filtering on interfaces facing the customer network, and AS border routers perform SAV filtering on interfaces facing another AS.
+When a SAVNET router acts as validation entity, the information receiver of its SAVNET Agent receives SAV-specific information from other SAVNET routers that act as source entity. Then, its SAVNET Agent processes SAV-specific information provided by other SAVNET routers, its own SAV-specific information, and/or its local routing information to generate SAV rules on corresponding interfaces. As mentioned above, host-facing routers perform SAV filtering on interfaces facing the host network, customer-facing routers perform SAV filtering on interfaces facing the customer network, and AS border routers perform SAV filtering on interfaces facing another AS.
 
 ~~~
 +---------------------+              +---------------------+
@@ -242,17 +242,17 @@ For intra-domain SAV, both SAV-specific information and local routing informatio
 
 ### SAV-specific Information
 
-SAV-specific information is specialized for SAV and thus helps generate more accurate SAV rules. A SAVNET router can obtain its local SAV-specific information based on local routing information, local interface configurations, and/or other local configuration information. In addition, SAVNET routers acting as validation entity can obtain SAV-specific information of other SAVNET routers that act as source entity. By using SAV-specific information provided by other SAVNET routers, the SAVNET router acting as validation entity can generate more accurate SAV rules than solely using its local routing information. 
+SAV-specific information is specialized for SAV and thus helps generate more accurate SAV rules. A SAVNET router can obtain its own SAV-specific information based on local routing information, local interface configurations, and/or other local configuration information. In addition, SAVNET routers acting as validation entity can obtain SAV-specific information of other SAVNET routers that act as source entity. By using SAV-specific information provided by other SAVNET routers, the SAVNET router acting as validation entity can generate more accurate SAV rules than solely using its local routing information. 
 
-For example, customer-facing routers connected to the same multi-homed customer network can exchange locally-known source prefixes of the customer network through SAV-specific information communication. By processing both local SAV-specific information and SAV-specific information of the other customer-facing routers, each of them can identify all prefixes in the customer network and thus avoid improper block in case there is an asymmetric routing. {{sec-use-case1}} elaborates on this example.
+For example, customer-facing routers connected to the same multi-homed customer network can exchange locally-known source prefixes of the customer network through SAV-specific information communication. By processing both SAV-specific information of itself and SAV-specific information of the other customer-facing routers, each of them can identify all prefixes in the customer network and thus avoid improper block in case there is an asymmetric routing. {{sec-use-case1}} elaborates on this example.
 
-### Local Routing Information
+### Routing Information
 
-Local routing information is used for computing packet forwarding rules, which is stored in the local RIB/FIB.  Although it is not specialized for SAV, it is widely used to infer SAV rules in existing uRPF-based SAV mechanisms, such as strict uRPF and loose uRPF [RFC3704]. A SAVNET router acting as validation entity can obtain local routing information from the router's RIB/FIB to generate SAV rules, when the corresponding SAV-specific information is missing.
+Routing information is used for computing packet forwarding rules, which is stored in the router's RIB/FIB.  Although it is not specialized for SAV, it is widely used to infer SAV rules in existing uRPF-based SAV mechanisms, such as strict uRPF and loose uRPF [RFC3704]. A SAVNET router acting as validation entity can obtain routing information from its local RIB/FIB to generate SAV rules for some prefixes, when the corresponding SAV-specific information is missing.
 
 ## SAV Rule Generation {#sec-arch-agent}
 
-{{fig-sav-agent}} shows the SAV rule generation process of the SAVNET router acting as validation entity. The SAV Information Manager of SAVNET Agent consolidates SAV-specific information from Information Receiver, local SAV-specific information, and local routing information into the SAV Information Base. Then, it sends the consolidated information to the SAV Rule Generator. The SAV Rule Generator should preferentially use SAV-specific information to generate SAV rules for specific source prefixes. Local routing information is only recommended when some SAV-specific information is missing.
+{{fig-sav-agent}} shows the SAV rule generation process of the SAVNET router acting as validation entity. The SAV Information Manager of SAVNET Agent consolidates SAV-specific information provided by other routers, SAV-specific information of the router itself, and local routing information into the SAV Information Base. Then, it sends the consolidated information to the SAV Rule Generator. The SAV Rule Generator should preferentially use SAV-specific information to generate SAV rules for specific source prefixes. Local routing information is only recommended when some SAV-specific information is missing.
 
 SAV Information Manager also provides the support of diagnosis. Operators can look up the information in SAV Information Base for monitoring or troubleshooting purpose. 
 
@@ -260,11 +260,11 @@ SAV Information Manager also provides the support of diagnosis. Operators can lo
 +--------------------------------------------------------+
 |                      SAVNET Agent                      |
 |                                                        |
-|     SAV-specific       Local SAV-     Local routing    |
-|     information        specific       information      |
-|     from Information   information         +           |
-|     Receiver               +               |           |
-|         +                  |               |           |
+|     SAV-specific     SAV-specific     Routing          |
+|     information      information      information      |
+|     provided by      of the router    in local         |
+|     other routers    itself           FIB/RIB          |
+|         +                  +               +           |
 |         |                  |               |           |
 |       +-v------------------v---------------v-+         |
 |       |      SAV Information Manager         |         |
@@ -305,7 +305,7 @@ This section uses two use cases to illustrate that intra-domain SAVNET can achie
 
 {{fig-use-case1}} shows an asymmetric routing in a multi-homed host/customer network scenario. Router 1 and Router 2 adopt intra-domain SAV to block spoofing data packets with source addresses not belonging to Network 1 (e.g., a host network or a customer network) receiving from interface '#'.
 
-Network 1 has prefix 10.0.0.0/15 and is connected to two routers (i.e., Router 1 and Router 2) in the intra-domain network. Due to the inbound load balance strategy of Network 1, Router 1 only learns the route to sub prefix 10.1.0.0/16 from Network 1, while Router 2 only learns the route to the other sub prefix 10.0.0.0/16 from Network 1. After that, Router 1 or Router 2 learns the route to the other sub prefix through the intra-domain routing protocol. The FIBs of Router 1 and Router 2 are shown in the figure. Assume Network 1 may send outbound packets with source addresses in sub prefix 10.0.0.0/16 to Router 1 for outbound load balance. 
+Network 1 has prefix 10.0.0.0/15 and is connected to two routers (i.e., Router 1 and Router 2) in the intra-domain network. Due to the inbound load balance strategy of Network 1, Router 1 only learns the route to sub prefix 10.1.0.0/16 from Network 1, while Router 2 only learns the route to the other sub prefix 10.0.0.0/16 from Network 1. After that, Router 1 or Router 2 learns the route to the other sub prefix through the intra-domain routing protocol. The FIBs of Router 1 and Router 2 are shown in the figure. Assume Network 1 may send outbound packets with source addresses in sub prefix 10.0.0.0/16 to Router 1 for outbound load balance. The arrows in {{fig-use-case1}} indicate the direction of traffic.
 
 ~~~
  +-------------------------------------------------------------+
@@ -335,19 +335,19 @@ Network 1 has prefix 10.0.0.0/15 and is connected to two routers (i.e., Router 1
 
 In this case, strict uRPF at Router 1 will improperly block legitimate packets with source addresses in prefix 10.0.0.0/16 from Network 1 on interface '#', because it only accepts data packets with source addresses in prefix 10.1.0.0/16 from Router 1's interface '#' according to its local routing information.
 
-If intra-domain SAVNET is implemented in the intra-domain network, Router 2 can inform Router 1 that prefix 10.0.0.0/16 also belongs to Network 1 by providing its SAV-specific information to Router 1. Then, by combining both local SAV-specific information and SAV-specific information provided by Router 2, Router 1 learns that Network 1 have both prefix 10.1.0.0/16 and prefix 10.0.0.0/16. Therefore, Router 1 will accept data packets with source addresses in prefix 10.1.0.0/16 and prefix 10.0.0.0/16 on interface '#', so improper block can be avoided. 
+If intra-domain SAVNET is implemented in the intra-domain network, Router 2 can inform Router 1 that prefix 10.0.0.0/16 also belongs to Network 1 by providing its SAV-specific information to Router 1. Then, by combining both its own SAV-specific information and SAV-specific information provided by Router 2, Router 1 learns that Network 1 have both prefix 10.1.0.0/16 and prefix 10.0.0.0/16. Therefore, Router 1 will accept data packets with source addresses in prefix 10.1.0.0/16 and prefix 10.0.0.0/16 on interface '#', so improper block can be avoided. 
 
 ## Use Case 2: SAV at AS Border Routers {#sec-use-case2}
 
-{{fig-use-case2}} shows a scenario of inbound SAV at AS border routers. Router 3 and Router 4 adopt intra-domain SAV to block spoofing data packets with internal source addresses receiving from interface '#'.
+{{fig-use-case2}} shows a scenario of inbound SAV at AS border routers. Router 3 and Router 4 adopt intra-domain SAV to block spoofing data packets with internal source addresses receiving from interface '#'. The arrows in {{fig-use-case2}} indicate the direction of spoofing traffic.
 
 ~~~
  Packets with +              Packets with +
  spoofed P1/P2|              spoofed P1/P2|
 +-------------|---------------------------|---------+
-|   AS        v                           v         |
+|   AS        \/                          \/        |
 |         +--+#+-----+               +---+#+----+   |
-|         | Router 3 +-------------->+ Router 4 |   |
+|         | Router 3 +---------------+ Router 4 |   |
 |         +----------+               +----+-----+   |
 |          /        \                     |         |
 |         /          \                    |         |
@@ -380,7 +380,7 @@ Intra-domain SAVNET architecture is proposed to meet the five design requirement
 
 In the asymmetric routing scenario shown in {{fig-use-case1}}, the host-facing router (or customer-facing router) cannot identify all prefixes in its host network (or customer network) solely using its local routing information. As a result, existing intra-domain SAV mechanisms (e.g., strict uRPF) solely using local routing information to generate SAV rules will have improper block problems in the case of asymmetric routing.
 
-Intra-domain SAVNET requires routers to exchange SAV-specific information among each other. SAVNET routers can use SAV-specific information provided by other routers as well as local SAV-specific information to generate more accurate SAV rules. The use case in {{fig-use-case1}} has shown that intra-domain SAVNET can achieve more accurate SAV filtering compared with strict uRPF in asymmetric routing scenarios.
+Intra-domain SAVNET requires routers to exchange SAV-specific information among each other. The SAVNET router can use SAV-specific information provided by other routers as well as its own SAV-specific information to generate more accurate SAV rules. The use case in {{fig-use-case1}} has shown that intra-domain SAVNET can achieve more accurate SAV filtering compared with strict uRPF in asymmetric routing scenarios.
 
 ## Automatic Update
 
