@@ -30,6 +30,14 @@ In WG meetings and mailing list, there were lots of active discussions on our pr
 - Materials: https://datatracker.ietf.org/meeting/118/session/savnet
 
 - - -
+## IETF 119
+- Time: Tuesday, March 19, 2024 (Brisbane, Austrilia)
+- Minutes: https://datatracker.ietf.org/doc/minutes-119-savnet/
+- Draft: [draft-ietf-savnet-intra-domain-architecture-00](https://datatracker.ietf.org/doc/draft-ietf-savnet-intra-domain-architecture/) 
+- Materials: https://datatracker.ietf.org/meeting/119/session/savnet
+
+
+- - -
 ## Mailing List
 - Welcome to subscribe the SAVNET mailing list. [Click here](https://www.ietf.org/mailman/listinfo/savnet).
 
